@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DocuExtract AI · Document Processing &amp; Data Extraction</title>
+<style>
+  :root {
+    --bg-app: #f8fafc;
+    --bg-panel: #ffffff;
+    --bg-subtle: #f1f5f9;
+    --bg-muted: #e2e8f0;
+    --border: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --border-focus: #6366f1;
+    
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --text-subtle: #94a3b8;
+
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-subtle: #eef2ff;
+    
+    --good: #10b981;
+    --good-dark: #047857;
+    --good-bg: #ecfdf5;
+    
+    --warn: #f59e0b;
+    --warn-dark: #b45309;
+    --warn-bg: #fffbeb;
+    
+    --bad: #ef4444;
+    --bad-dark: #b91c1c;
+    --bad-bg: #fef2f2;
+    
+    --info: #0284c7;
+    --info-bg: #f0f9ff;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg-app);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  header {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    box-shadow: var(--shadow-sm);
+  }
+  .brand-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  }
+  .brand-text h1 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand-text span {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+  .btn-secondary {
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-subtle);
+    border-color: var(--border-hover);
+  }
+  .btn-success {
+    background: var(--good);
+    color: white;
+  }
+  .btn-success:hover {
+    background: var(--good-dark);
+  }
+  .btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+  }
+  .btn-upload {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-upload input[type="file"] {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+  }
+
+  /* Main Workspace Layout */
+  .app-container {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    flex: 1;
+    height: calc(100vh - 67px);
+    overflow: hidden;
+  }
+  @media (max-width: 960px) {
+    .app-container {
+      grid-template-columns: 1fr;
+      height: auto;
+      overflow: visible;
+    }
+  }
+
+  /* Left Sidebar: Document List */
+  .sidebar {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    background: #fafbfc;
+  }
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .stat-card .val {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .stat-card .lbl {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .search-input-wrap {
+    position: relative;
+  }
+  .search-input-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-subtle);
+  }
+  .search-input {
+    width: 100%;
+    padding: 8px 10px 8px 32px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    outline: none;
+    background: var(--bg-panel);
+  }
+  .search-input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  }
+  .filter-row {
+    display: flex;
+    gap: 6px;
+  }
+  .filter-select {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-panel);
+    color: var(--text-main);
+  }
+
+  .doc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .doc-item {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--bg-panel);
+  }
+  .doc-item:hover {
+    background: var(--bg-subtle);
+    border-color: var(--border);
+  }
+  .doc-item.active {
+    background: var(--primary-subtle);
+    border-color: #c7d2fe;
+    box-shadow: var(--shadow-sm);
+  }
+  .doc-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .doc-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.3;
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .doc-item-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .doc-tags {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Badges & Pills */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  .badge.uploaded { background: #e0e7ff; color: #3730a3; }
+  .badge.processing { background: #fef08a; color: #854d0e; }
+  .badge.needs_review { background: #fef3c7; color: #b45309; }
+  .badge.validated { background: #d1fae5; color: #065f46; }
+  .badge.failed { background: #fee2e2; color: #991b1b; }
+  .badge-type {
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .conf-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 12px;
+  }
+  .conf-high { background: #dcfce7; color: #15803d; }
+  .conf-med { background: #fef3c7; color: #b45309; }
+  .conf-low { background: #fee2e2; color: #b91c1c; }
+
+  /* Right Workbench: Extracted Information Explorer */
+  .workbench {
+    background: var(--bg-app);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+  }
+  .empty-workbench {
+    margin: auto;
+    text-align: center;
+    color: var(--text-muted);
+    max-width: 440px;
+    padding: 40px;
+  }
+  .empty-workbench-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.7;
+  }
+  .empty-workbench h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-main);
+    font-size: 18px;
+  }
+
+  /* Document Review Container */
+  .review-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Header Card */
+  .doc-hero-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .doc-hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .doc-hero-main {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .doc-type-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .doc-hero-title h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+    word-break: break-all;
+  }
+  .doc-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .doc-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Banners */
+  .alert-box {
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .alert-warn {
+    background: var(--warn-bg);
+    border: 1px solid #fde68a;
+    color: var(--warn-dark);
+  }
+  .alert-error {
+    background: var(--bad-bg);
+    border: 1px solid #fecaca;
+    color: var(--bad-dark);
+  }
+  .alert-box svg { flex-shrink: 0; }
+
+  /* Navigation Tabs */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 2px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .tab-btn:hover {
+    color: var(--text-main);
+    background: var(--bg-subtle);
+  }
+  .tab-btn.active {
+    color: var(--primary);
+  }
+  .tab-btn.active::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px;
+  }
+
+  /* Content Cards */
+  .section-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 22px 24px;
+  }
+  .section-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Key Metric Highlights Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .metric-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+  .metric-box.highlight {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+  .metric-box .metric-lbl {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .metric-box .metric-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+    word-break: break-all;
+  }
+  .metric-box.highlight .metric-val {
+    color: #15803d;
+    font-size: 22px;
+  }
+
+  /* Form Grid */
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+  .form-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .form-input {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    color: var(--text-main);
+    transition: border 0.15s ease;
+  }
+  .form-input:focus {
+    border-color: var(--border-focus);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+  }
+  .form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    color: var(--text-main);
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.5;
+    font-family: inherit;
+  }
+  .form-textarea:focus {
+    border-color: var(--border-focus);
+    outline: none;
+  }
+
+  /* Line Items Table */
+  .table-container {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .line-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .line-items-table th {
+    background: #f8fafc;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .line-items-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .line-items-table tr:last-child td {
+    border-bottom: none;
+  }
+  .line-items-table input {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+  }
+  .line-items-table input:focus, .line-items-table input:hover {
+    border-color: var(--border);
+    background: #fff;
+  }
+  .line-items-table input.num {
+    text-align: right;
+  }
+  .line-items-table th.num {
+    text-align: right;
+  }
+
+  /* Totals Breakdown Card */
+  .totals-summary {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+  }
+  .totals-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .total-row.grand {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  /* Tag Cloud / Pills Manager */
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .tag-chip .remove-tag {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    color: #818cf8;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .tag-chip .remove-tag:hover {
+    color: #3730a3;
+  }
+  .add-tag-input {
+    border: 1px dashed var(--border-hover);
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    outline: none;
+    background: #fff;
+    min-width: 140px;
+  }
+  .add-tag-input:focus {
+    border-color: var(--primary);
+    border-style: solid;
+  }
+
+  /* Timeline & Nested Items Cards */
+  .entry-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+  .entry-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .entry-card-title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* Checks Tab */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+  .check-item.pass {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+  .check-item.fail {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+  .check-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .check-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .check-detail {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Source Text Tab */
+  .source-box {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    max-height: 540px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e293b;
+    color: white;
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Helpers */
+  .text-muted { color: var(--text-muted); }
+  .text-sm { font-size: 12px; }
+  .mt-2 { margin-top: 8px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-area">
+    <div class="brand-icon">📄</div>
+    <div class="brand-text">
+      <h1>AI Document Processing</h1>
+      <span>Smart OCR &bull; Data Extraction &bull; Human Review</span>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <label class="btn btn-primary btn-upload">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg>
+      <span>Upload Documents</span>
+      <input type="file" id="fileInput" multiple onchange="uploadFiles()" />
+    </label>
+    <button class="btn btn-secondary" onclick="exportData('xlsx')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+      Excel
+    </button>
+    <button class="btn btn-secondary" onclick="exportData('csv')">CSV</button>
+  </div>
+</header>
+
+<div class="app-container">
+  <!-- Left Column: Document List & Quick Stats -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="stats-bar" id="stats">
+        <div class="stat-card"><div class="val" id="statTotal">-</div><div class="lbl">Total</div></div>
+        <div class="stat-card"><div class="val" style="color:var(--warn-dark)" id="statReview">-</div><div class="lbl">Review</div></div>
+        <div class="stat-card"><div class="val" style="color:var(--good-dark)" id="statValid">-</div><div class="lbl">Valid</div></div>
+        <div class="stat-card"><div class="val" style="color:var(--bad-dark)" id="statFailed">-</div><div class="lbl">Failed</div></div>
+      </div>
+
+      <div class="filter-controls">
+        <div class="search-input-wrap">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <input type="text" id="search" class="search-input" placeholder="Search filename or extracted text…" oninput="loadDocuments()" />
+        </div>
+        <div class="filter-row">
+          <select id="filterStatus" class="filter-select" onchange="loadDocuments()">
+            <option value="">All Statuses</option>
+            <option value="needs_review">Needs Review</option>
+            <option value="validated">Validated</option>
+            <option value="processing">Processing</option>
+            <option value="failed">Failed</option>
+            <option value="uploaded">Uploaded</option>
+          </select>
+          <select id="filterType" class="filter-select" onchange="loadDocuments()">
+            <option value="">All Types</option>
+            <option value="invoice">Invoice</option>
+            <option value="receipt">Receipt</option>
+            <option value="purchase_order">Purchase Order</option>
+            <option value="resume">Resume / CV</option>
+            <option value="contract">Contract</option>
+            <option value="application_form">Application Form</option>
+            <option value="generic">Generic</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="doc-list" id="docList">
+      <!-- Populated via loadDocuments() -->
+    </div>
+  </aside>
+
+  <!-- Right Column: Interactive Extracted Information Workbench -->
+  <main class="workbench" id="workbench">
+    <div class="empty-workbench" id="emptyWorkbench">
+      <div class="empty-workbench-icon">📂</div>
+      <h3>No Document Selected</h3>
+      <p class="text-sm">Select any document from the left sidebar to inspect extracted fields, verify confidence scores, and perform human corrections.</p>
+    </div>
+    
+    <div class="review-container" id="reviewContainer" style="display:none;">
+      <!-- Populated via renderWorkbench() -->
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">Notification message</div>
+
+<script>
+const API = "";
+let currentDoc = null;
+let workingFields = {};
+let activeTab = "overview";
+
+const TYPE_ICONS = {
+  invoice: "🧾",
+  receipt: "🧾",
+  purchase_order: "📦",
+  resume: "👤",
+  contract: "📜",
+  application_form: "📝",
+  generic: "📄"
+};
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+function humanize(key) {
+  if (!key) return "";
+  return key
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatCurrency(val, currency = "$") {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  const num = Number(val);
+  return `${currency}${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function getConfidencePill(score) {
+  if (score === null || score === undefined) return "";
+  const s = Number(score);
+  const pct = Math.round(s * 100);
+  let cls = "conf-high";
+  if (s < 0.5) cls = "conf-low";
+  else if (s < 0.75) cls = "conf-med";
+  return `<span class="conf-pill ${cls}" title="Model extraction confidence">${pct}%</span>`;
+}
+
+// Stats & Document Listing
+async function loadStats() {
+  try {
+    const res = await fetch(API + "/stats");
+    const data = await res.json();
+    document.getElementById("statTotal").textContent = data.total || 0;
+    document.getElementById("statReview").textContent = data.by_status.needs_review || 0;
+    document.getElementById("statValid").textContent = data.by_status.validated || 0;
+    document.getElementById("statFailed").textContent = data.by_status.failed || 0;
+  } catch (err) {
+    console.error("Failed to load stats", err);
+  }
+}
+
+async function loadDocuments() {
+  const status = document.getElementById("filterStatus").value;
+  const doc_type = document.getElementById("filterType").value;
+  const q = document.getElementById("search").value;
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (doc_type) params.set("doc_type", doc_type);
+  if (q) params.set("q", q);
+
+  try {
+    const res = await fetch(API + "/documents?" + params.toString());
+    const docs = await res.json();
+    const container = document.getElementById("docList");
+    container.innerHTML = "";
+
+    if (!docs.length) {
+      container.innerHTML = `<div style="text-align:center; padding:40px 20px; color:var(--text-muted); font-size:13px;">No documents found matching filters.</div>`;
+      return;
+    }
+
+    docs.forEach(d => {
+      const icon = TYPE_ICONS[d.doc_type] || "📄";
+      const conf = Math.round((d.overall_confidence || 0) * 100);
+      const confClass = d.overall_confidence >= 0.75 ? "conf-high" : d.overall_confidence >= 0.5 ? "conf-med" : "conf-low";
+      const isActive = currentDoc && currentDoc.id === d.id;
+
+      const item = document.createElement("div");
+      item.className = `doc-item ${isActive ? "active" : ""}`;
+      item.onclick = () => selectDocument(d.id);
+
+      item.innerHTML = `
+        <div class="doc-item-top">
+          <span class="doc-item-title">${icon} ${d.filename}</span>
+          <span class="badge ${d.status}">${d.status.replace("_", " ")}</span>
+        </div>
+        <div class="doc-item-bottom">
+          <div class="doc-tags">
+            <span class="badge-type">${humanize(d.doc_type)}</span>
+            ${d.is_duplicate_of ? '<span title="Duplicate match" style="font-size:13px;">🔁</span>' : ""}
+          </div>
+          <div>
+            <span class="conf-pill ${confClass}">${conf}%</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+
+    loadStats();
+  } catch (err) {
+    console.error("Failed to load documents", err);
+  }
+}
+
+async function selectDocument(id) {
+  try {
+    const res = await fetch(API + "/documents/" + id);
+    if (!res.ok) throw new Error("Document not found");
+    const doc = await res.json();
+    currentDoc = doc;
+    workingFields = JSON.parse(JSON.stringify(doc.extracted_fields || {}));
+    
+    document.getElementById("emptyWorkbench").style.display = "none";
+    document.getElementById("reviewContainer").style.display = "flex";
+
+    // Highlight in list
+    document.querySelectorAll(".doc-item").forEach(el => el.classList.remove("active"));
+    loadDocuments(); // re-sync active state
+
+    renderWorkbench();
+  } catch (err) {
+    showToast("Error loading document: " + err.message);
+  }
+}
+
+// Master Workbench Renderer
+function renderWorkbench() {
+  const d = currentDoc;
+  if (!d) return;
+
+  const container = document.getElementById("reviewContainer");
+  const icon = TYPE_ICONS[d.doc_type] || "📄";
+  const confPct = Math.round((d.overall_confidence || 0) * 100);
+  const confClass = d.overall_confidence >= 0.75 ? "conf-high" : d.overall_confidence >= 0.5 ? "conf-med" : "conf-low";
+  
+  // Header and alerts
+  let alertsHtml = "";
+  if (d.error_message) {
+    alertsHtml += `
+      <div class="alert-box alert-error">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div><b>Processing Error:</b> ${d.error_message}</div>
+      </div>`;
+  }
+  if (d.is_duplicate_of) {
+    alertsHtml += `
+      <div class="alert-box alert-warn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <div>Duplicate detected! Matches document <b>${d.is_duplicate_of.slice(0, 8)}…</b></div>
+        <button class="btn btn-secondary btn-sm" onclick="selectDocument('${d.is_duplicate_of}')">Inspect Original</button>
+      </div>`;
+  }
+  if (d.status === "needs_review") {
+    alertsHtml += `
+      <div class="alert-box alert-warn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="12" x2="12" y2="16"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <div><b>Human Review Recommended:</b> Some fields have low confidence scores or failed validation checks. Review and adjust values before approving.</div>
+      </div>`;
+  }
+
+  // Build Tab Navigation
+  const checksCount = d.validation_results ? d.validation_results.length : 0;
+  const failedChecks = d.validation_results ? d.validation_results.filter(c => !c.passed).length : 0;
+  const checkBadge = failedChecks > 0 ? `<span class="badge failed">${failedChecks}</span>` : `<span class="badge validated">${checksCount}</span>`;
+
+  container.innerHTML = `
+    <!-- Top Hero Card -->
+    <div class="doc-hero-card">
+      <div class="doc-hero-top">
+        <div class="doc-hero-main">
+          <div class="doc-type-avatar">${icon}</div>
+          <div class="doc-hero-title">
+            <h2>${d.filename}</h2>
+            <div class="doc-hero-meta">
+              <span class="badge ${d.status}">${d.status.replace("_", " ")}</span>
+              <span>Type: <b>${humanize(d.doc_type)}</b></span>
+              <span>Overall Confidence: <span class="conf-pill ${confClass}">${confPct}%</span></span>
+              ${d.used_ocr ? '<span class="badge-type">⚡ Tesseract OCR</span>' : '<span class="badge-type">📄 Digital Text</span>'}
+              <span>Uploaded: ${new Date(d.created_at).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-hero-actions">
+          <a href="/documents/${d.id}/file" target="_blank" class="btn btn-secondary" title="View original uploaded file">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            Original File
+          </a>
+          <button class="btn btn-secondary" onclick="reprocessDocument('${d.id}')" title="Re-run AI extraction pipeline">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Reprocess
+          </button>
+          <button class="btn btn-secondary" onclick="saveDocumentFields(false)" title="Save modifications">
+            Save Draft
+          </button>
+          <button class="btn btn-success" onclick="saveDocumentFields(true)" title="Approve and mark validated">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Approve &amp; Validate
+          </button>
+        </div>
+      </div>
+
+      ${alertsHtml}
+
+      <!-- Tab Navigator -->
+      <div class="tab-nav">
+        <button class="tab-btn ${activeTab === 'overview' ? 'active' : ''}" onclick="switchTab('overview')">
+          📊 Extracted Data
+        </button>
+        <button class="tab-btn ${activeTab === 'checks' ? 'active' : ''}" onclick="switchTab('checks')">
+          🛡️ Validation Checks ${checkBadge}
+        </button>
+        <button class="tab-btn ${activeTab === 'source' ? 'active' : ''}" onclick="switchTab('source')">
+          🔍 Extracted Source / OCR Text
+        </button>
+        <button class="tab-btn ${activeTab === 'json' ? 'active' : ''}" onclick="switchTab('json')">
+          { } JSON Output
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content Area -->
+    <div id="tabContent">
+      ${renderActiveTab()}
+    </div>
+  `;
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  renderWorkbench();
+}
+
+function renderActiveTab() {
+  if (activeTab === "overview") return renderExtractedDataTab();
+  if (activeTab === "checks") return renderValidationChecksTab();
+  if (activeTab === "source") return renderSourceTextTab();
+  if (activeTab === "json") return renderJsonTab();
+  return "";
+}
+
+// -------------------------------------------------------------
+// TAB 1: Structured Extracted Data (Intelligent Semantic View)
+// -------------------------------------------------------------
+function renderExtractedDataTab() {
+  const d = currentDoc;
+  const fields = workingFields || {};
+  const scores = d.confidence_scores || {};
+  const docType = d.doc_type || "generic";
+
+  let html = "";
+
+  // Render according to semantic document type
+  if (["invoice", "receipt", "purchase_order"].includes(docType)) {
+    html += renderFinancialDocument(fields, scores, docType);
+  } else if (docType === "resume") {
+    html += renderResumeDocument(fields, scores);
+  } else if (docType === "contract") {
+    html += renderContractDocument(fields, scores);
+  } else {
+    html += renderGenericOrApplicationDocument(fields, scores, docType);
+  }
+
+  return html;
+}
+
+// Sub-Renderer: Financial Invoices, Receipts & POs
+function renderFinancialDocument(fields, scores, type) {
+  const currency = fields.currency || "$";
+  const subtotal = Number(fields.subtotal) || 0;
+  const tax = Number(fields.tax) || 0;
+  const total = Number(fields.total) || 0;
+  const mathMatches = Math.abs((subtotal + tax) - total) < 0.05;
+
+  let headerFieldsHtml = "";
+  const vendorLabel = type === "purchase_order" ? "Supplier Name" : (type === "receipt" ? "Vendor Name" : "Supplier Name");
+  const vendorKey = type === "purchase_order" ? "supplier_name" : (type === "receipt" ? "vendor_name" : "supplier_name");
+  const docNumberKey = type === "purchase_order" ? "po_number" : (type === "receipt" ? "receipt_number" : "invoice_number");
+  const docDateKey = type === "purchase_order" ? "order_date" : (type === "receipt" ? "date" : "invoice_date");
+
+  // Highlight Cards
+  let metricsHtml = `
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="metric-lbl">${vendorLabel} ${getConfidencePill(scores[vendorKey])}</div>
+        <div class="metric-val">
+          <input class="form-input" style="font-weight:700; font-size:16px; padding:4px 6px;" value="${fields[vendorKey] || ''}" onchange="updateField('${vendorKey}', this.value)" placeholder="Not specified" />
+        </div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-lbl">${humanize(docNumberKey)} ${getConfidencePill(scores[docNumberKey])}</div>
+        <div class="metric-val">
+          <input class="form-input" style="font-weight:700; font-size:16px; padding:4px 6px;" value="${fields[docNumberKey] || ''}" onchange="updateField('${docNumberKey}', this.value)" placeholder="Not specified" />
+        </div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-lbl">Document Date ${getConfidencePill(scores[docDateKey])}</div>
+        <div class="metric-val">
+          <input type="text" class="form-input" style="padding:4px 6px;" value="${fields[docDateKey] || ''}" onchange="updateField('${docDateKey}', this.value)" placeholder="YYYY-MM-DD" />
+        </div>
+      </div>
+      <div class="metric-box highlight">
+        <div class="metric-lbl">Total Amount ${getConfidencePill(scores.total)}</div>
+        <div class="metric-val" style="display:flex; align-items:center; gap:4px;">
+          <span>${currency}</span>
+          <input type="number" step="0.01" class="form-input" style="font-weight:700; font-size:18px; color:#15803d; padding:4px 6px;" value="${fields.total ?? ''}" onchange="updateField('total', parseFloat(this.value)||0)" />
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Additional fields (e.g. Due Date, Buyer Name, Payment Method, Currency)
+  const secondaryKeys = ["due_date", "buyer_name", "payment_method", "currency"].filter(k => k in fields || k in scores);
+  let secondaryHtml = "";
+  if (secondaryKeys.length) {
+    secondaryHtml = `
+      <div class="field-grid" style="margin-bottom:20px;">
+        ${secondaryKeys.map(k => `
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label">${humanize(k)}</label>
+              ${getConfidencePill(scores[k])}
+            </div>
+            <input class="form-input" value="${fields[k] ?? ''}" onchange="updateField('${k}', this.value)" />
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  // Line Items Table
+  const items = Array.isArray(fields.line_items) ? fields.line_items : [];
+  let tableRowsHtml = "";
+  items.forEach((item, idx) => {
+    tableRowsHtml += `
+      <tr>
+        <td style="color:var(--text-muted); font-size:11px; width:30px;">#${idx + 1}</td>
+        <td>
+          <input type="text" value="${item.description ?? ''}" placeholder="Description" onchange="updateLineItem(${idx}, 'description', this.value)" />
+        </td>
+        <td style="width:90px;">
+          <input type="number" step="any" class="num" value="${item.quantity ?? ''}" placeholder="0" onchange="updateLineItem(${idx}, 'quantity', parseFloat(this.value)||0)" />
+        </td>
+        <td style="width:110px;">
+          <input type="number" step="0.01" class="num" value="${item.unit_price ?? ''}" placeholder="0.00" onchange="updateLineItem(${idx}, 'unit_price', parseFloat(this.value)||0)" />
+        </td>
+        <td style="width:110px;">
+          <input type="number" step="0.01" class="num" value="${item.amount ?? ''}" placeholder="0.00" onchange="updateLineItem(${idx}, 'amount', parseFloat(this.value)||0)" />
+        </td>
+        <td style="width:40px; text-align:center;">
+          <button class="btn btn-secondary btn-sm" style="color:var(--bad); padding:2px 6px;" onclick="removeLineItem(${idx})" title="Remove item">&times;</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  const lineItemsCard = `
+    <div class="section-card">
+      <div class="flex-between" style="margin-bottom:14px;">
+        <h3 style="margin:0;">📦 Itemized Line Items (${items.length})</h3>
+        <button class="btn btn-secondary btn-sm" onclick="addLineItem()">+ Add Item Row</button>
+      </div>
+
+      <div class="table-container">
+        <table class="line-items-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Description</th>
+              <th class="num">Quantity</th>
+              <th class="num">Unit Price</th>
+              <th class="num">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml || '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No line items detected in document.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Financial Totals Section -->
+      <div class="totals-summary">
+        <div class="totals-box">
+          <div class="total-row">
+            <span>Subtotal</span>
+            <input type="number" step="0.01" class="form-input" style="width:120px; text-align:right; padding:2px 6px;" value="${fields.subtotal ?? ''}" onchange="updateField('subtotal', parseFloat(this.value)||0)" />
+          </div>
+          <div class="total-row">
+            <span>Tax</span>
+            <input type="number" step="0.01" class="form-input" style="width:120px; text-align:right; padding:2px 6px;" value="${fields.tax ?? ''}" onchange="updateField('tax', parseFloat(this.value)||0)" />
+          </div>
+          <div class="total-row grand">
+            <span>Total (${currency})</span>
+            <span>${formatCurrency(fields.total, currency)}</span>
+          </div>
+          <div style="font-size:11px; margin-top:4px; display:flex; align-items:center; gap:5px; color:${mathMatches ? 'var(--good-dark)' : 'var(--warn-dark)'};">
+            ${mathMatches ? '✓ Totals match: Subtotal + Tax = Total' : '⚠️ Subtotal + Tax does not equal Total'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return metricsHtml + secondaryHtml + lineItemsCard;
+}
+
+// Sub-Renderer: Resumes / CVs
+function renderResumeDocument(fields, scores) {
+  const candidateName = fields.candidate_name || "Unidentified Candidate";
+  const email = fields.email || "";
+  const phone = fields.phone || "";
+  const location = fields.location || "";
+  const yearsExp = fields.years_experience !== null ? fields.years_experience : "-";
+  const skills = Array.isArray(fields.skills) ? fields.skills : [];
+  const education = Array.isArray(fields.education) ? fields.education : [];
+  const experience = Array.isArray(fields.work_experience) ? fields.work_experience : [];
+
+  let html = `
+    <!-- Candidate Overview Card -->
+    <div class="section-card" style="margin-bottom:18px;">
+      <div class="flex-between">
+        <div>
+          <span class="text-sm text-muted">Candidate Profile</span>
+          <div style="font-size:20px; font-weight:700; margin-top:2px;">
+            <input class="form-input" style="font-size:18px; font-weight:700; padding:4px 8px; width:340px;" value="${fields.candidate_name ?? ''}" onchange="updateField('candidate_name', this.value)" placeholder="Candidate Name" />
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <span class="text-sm text-muted">Experience</span>
+          <div style="font-size:16px; font-weight:600; display:flex; align-items:center; gap:4px; justify-content:flex-end;">
+            <input type="number" step="1" class="form-input" style="width:70px; text-align:center; padding:4px;" value="${fields.years_experience ?? ''}" onchange="updateField('years_experience', parseInt(this.value)||0)" />
+            <span>Years</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-grid" style="margin-top:16px;">
+        <div class="form-group">
+          <div class="form-label-row"><label class="form-label">Email</label>${getConfidencePill(scores.email)}</div>
+          <input type="email" class="form-input" value="${email}" onchange="updateField('email', this.value)" placeholder="candidate@example.com" />
+        </div>
+        <div class="form-group">
+          <div class="form-label-row"><label class="form-label">Phone</label>${getConfidencePill(scores.phone)}</div>
+          <input type="text" class="form-input" value="${phone}" onchange="updateField('phone', this.value)" placeholder="+1 555-0199" />
+        </div>
+        <div class="form-group">
+          <div class="form-label-row"><label class="form-label">Location</label>${getConfidencePill(scores.location)}</div>
+          <input type="text" class="form-input" value="${location}" onchange="updateField('location', this.value)" placeholder="City, Country" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills Cloud Card -->
+    <div class="section-card" style="margin-bottom:18px;">
+      <div class="flex-between" style="margin-bottom:12px;">
+        <h3 style="margin:0;">🛠️ Identified Skills (${skills.length})</h3>
+        ${getConfidencePill(scores.skills)}
+      </div>
+      <div class="tag-cloud">
+        ${skills.map((s, idx) => `
+          <div class="tag-chip">
+            <span>${s}</span>
+            <button class="remove-tag" onclick="removeSkill(${idx})">&times;</button>
+          </div>
+        `).join("")}
+        <input class="add-tag-input" placeholder="+ Add skill (press Enter)" onkeydown="if(event.key==='Enter'){ addSkill(this.value); this.value=''; }" />
+      </div>
+    </div>
+
+    <!-- Work Experience Section -->
+    <div class="section-card" style="margin-bottom:18px;">
+      <div class="flex-between" style="margin-bottom:12px;">
+        <h3 style="margin:0;">💼 Work Experience (${experience.length})</h3>
+        <button class="btn btn-secondary btn-sm" onclick="addExperience()">+ Add Role</button>
+      </div>
+      ${experience.length ? experience.map((exp, idx) => `
+        <div class="entry-card">
+          <div class="entry-card-header">
+            <input class="form-input" style="font-weight:700; width:45%;" value="${exp.title || ''}" placeholder="Job Title" onchange="updateExperience(${idx}, 'title', this.value)" />
+            <input class="form-input" style="width:45%;" value="${exp.company || ''}" placeholder="Company Name" onchange="updateExperience(${idx}, 'company', this.value)" />
+            <button class="btn btn-secondary btn-sm" style="color:var(--bad);" onclick="removeExperience(${idx})">&times;</button>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <input class="form-input" style="font-size:12px;" value="${exp.start_date || ''}" placeholder="Start Date" onchange="updateExperience(${idx}, 'start_date', this.value)" />
+            <input class="form-input" style="font-size:12px;" value="${exp.end_date || ''}" placeholder="End Date" onchange="updateExperience(${idx}, 'end_date', this.value)" />
+          </div>
+        </div>
+      `).join("") : '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:18px;">No work experience detected.</div>'}
+    </div>
+
+    <!-- Education Section -->
+    <div class="section-card">
+      <div class="flex-between" style="margin-bottom:12px;">
+        <h3 style="margin:0;">🎓 Education (${education.length})</h3>
+        <button class="btn btn-secondary btn-sm" onclick="addEducation()">+ Add Degree</button>
+      </div>
+      ${education.length ? education.map((edu, idx) => `
+        <div class="entry-card">
+          <div class="entry-card-header">
+            <input class="form-input" style="font-weight:700; width:50%;" value="${edu.degree || ''}" placeholder="Degree / Certificate" onchange="updateEducation(${idx}, 'degree', this.value)" />
+            <input class="form-input" style="width:40%;" value="${edu.institution || ''}" placeholder="Institution / University" onchange="updateEducation(${idx}, 'institution', this.value)" />
+            <input class="form-input" style="width:60px; text-align:center;" value="${edu.year || ''}" placeholder="Year" onchange="updateEducation(${idx}, 'year', this.value)" />
+            <button class="btn btn-secondary btn-sm" style="color:var(--bad);" onclick="removeEducation(${idx})">&times;</button>
+          </div>
+        </div>
+      `).join("") : '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:18px;">No education entries detected.</div>'}
+    </div>
+  `;
+
+  return html;
+}
+
+// Sub-Renderer: Legal Contracts
+function renderContractDocument(fields, scores) {
+  const terms = Array.isArray(fields.key_terms) ? fields.key_terms : [];
+
+  return `
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="metric-lbl">Party A ${getConfidencePill(scores.party_a)}</div>
+        <div class="metric-val">
+          <input class="form-input" style="font-weight:700; font-size:15px;" value="${fields.party_a || ''}" onchange="updateField('party_a', this.value)" placeholder="First Party" />
+        </div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-lbl">Party B ${getConfidencePill(scores.party_b)}</div>
+        <div class="metric-val">
+          <input class="form-input" style="font-weight:700; font-size:15px;" value="${fields.party_b || ''}" onchange="updateField('party_b', this.value)" placeholder="Second Party" />
+        </div>
+      </div>
+      <div class="metric-box highlight">
+        <div class="metric-lbl">Contract Value ${getConfidencePill(scores.contract_value)}</div>
+        <div class="metric-val">
+          <input type="number" step="0.01" class="form-input" style="font-weight:700; font-size:16px; color:#15803d;" value="${fields.contract_value ?? ''}" onchange="updateField('contract_value', parseFloat(this.value)||0)" placeholder="0.00" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card" style="margin-bottom:18px;">
+      <h3>Contract Timeline &amp; Key Dates</h3>
+      <div class="field-grid">
+        <div class="form-group">
+          <div class="form-label-row"><label class="form-label">Effective Date</label>${getConfidencePill(scores.effective_date)}</div>
+          <input type="text" class="form-input" value="${fields.effective_date || ''}" onchange="updateField('effective_date', this.value)" placeholder="YYYY-MM-DD" />
+        </div>
+        <div class="form-group">
+          <div class="form-label-row"><label class="form-label">Expiration / Term Date</label>${getConfidencePill(scores.expiration_date)}</div>
+          <input type="text" class="form-input" value="${fields.expiration_date || ''}" onchange="updateField('expiration_date', this.value)" placeholder="YYYY-MM-DD or Indefinite" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="flex-between" style="margin-bottom:14px;">
+        <h3 style="margin:0;">📜 Key Terms &amp; Conditions</h3>
+        <button class="btn btn-secondary btn-sm" onclick="addContractTerm()">+ Add Term</button>
+      </div>
+      ${terms.length ? terms.map((term, idx) => `
+        <div class="entry-card" style="flex-direction:row; align-items:center;">
+          <span style="font-weight:700; color:var(--text-muted); width:24px;">#${idx+1}</span>
+          <input class="form-input" value="${term || ''}" onchange="updateContractTerm(${idx}, this.value)" />
+          <button class="btn btn-secondary btn-sm" style="color:var(--bad);" onclick="removeContractTerm(${idx})">&times;</button>
+        </div>
+      `).join("") : '<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:18px;">No key clauses detected.</div>'}
+    </div>
+  `;
+}
+
+// Sub-Renderer: Generic & Application Form Documents
+function renderGenericOrApplicationDocument(fields, scores, type) {
+  const summary = fields.summary || "";
+  const entities = Array.isArray(fields.key_entities) ? fields.key_entities : [];
+  const keyValues = (fields.key_values || fields.form_fields) && typeof (fields.key_values || fields.form_fields) === "object" ? (fields.key_values || fields.form_fields) : {};
+  const hasEntities = entities.length > 0;
+  const hasKeyValues = Object.keys(keyValues).length > 0;
+
+  let html = "";
+
+  // Title and Primary Date if available
+  if ("title" in fields || "primary_date" in fields || "applicant_name" in fields) {
+    html += `
+      <div class="metrics-grid">
+        ${"title" in fields ? `
+          <div class="metric-box" style="grid-column: span 2;">
+            <div class="metric-lbl">Document Title ${getConfidencePill(scores.title)}</div>
+            <div class="metric-val">
+              <input class="form-input" style="font-weight:700; font-size:16px;" value="${fields.title || ''}" onchange="updateField('title', this.value)" placeholder="Document Title" />
+            </div>
+          </div>
+        ` : ""}
+        ${"primary_date" in fields ? `
+          <div class="metric-box">
+            <div class="metric-lbl">Primary Date ${getConfidencePill(scores.primary_date)}</div>
+            <div class="metric-val">
+              <input class="form-input" value="${fields.primary_date || ''}" onchange="updateField('primary_date', this.value)" placeholder="Date" />
+            </div>
+          </div>
+        ` : ""}
+        ${"applicant_name" in fields ? `
+          <div class="metric-box">
+            <div class="metric-lbl">Applicant Name ${getConfidencePill(scores.applicant_name)}</div>
+            <div class="metric-val">
+              <input class="form-input" style="font-weight:700;" value="${fields.applicant_name || ''}" onchange="updateField('applicant_name', this.value)" />
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  // Executive Summary Card
+  if (summary || "summary" in fields) {
+    html += `
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="flex-between" style="margin-bottom:10px;">
+          <h3 style="margin:0;">📝 Document Summary</h3>
+          ${getConfidencePill(scores.summary)}
+        </div>
+        <textarea class="form-textarea" onchange="updateField('summary', this.value)" placeholder="Executive summary of document content…">${summary}</textarea>
+      </div>
+    `;
+  }
+
+  // Key Entities Tag Cloud
+  if (hasEntities || "key_entities" in fields) {
+    html += `
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="flex-between" style="margin-bottom:12px;">
+          <h3 style="margin:0;">🏷️ Key Entities &amp; Topics (${entities.length})</h3>
+          ${getConfidencePill(scores.key_entities)}
+        </div>
+        <div class="tag-cloud">
+          ${entities.map((ent, idx) => `
+            <div class="tag-chip">
+              <span>${ent}</span>
+              <button class="remove-tag" onclick="removeEntity(${idx})">&times;</button>
+            </div>
+          `).join("")}
+          <input class="add-tag-input" placeholder="+ Add entity (press Enter)" onkeydown="if(event.key==='Enter'){ addEntity(this.value); this.value=''; }" />
+        </div>
+      </div>
+    `;
+  }
+
+  // Structured Key-Values / Form Fields Inspector Grid
+  if (hasKeyValues) {
+    const parentKey = "key_values" in fields ? "key_values" : "form_fields";
+    html += `
+      <div class="section-card">
+        <h3>📋 Structured Attributes &amp; Key Data</h3>
+        <div class="field-grid">
+          ${Object.entries(keyValues).map(([k, v]) => {
+            let renderedValue = "";
+            if (Array.isArray(v)) {
+              renderedValue = `
+                <div class="tag-cloud" style="gap:4px;">
+                  ${v.map(val => `<span class="tag-chip" style="font-size:11px; padding:2px 8px;">${val}</span>`).join("")}
+                </div>`;
+            } else if (typeof v === "boolean") {
+              renderedValue = `
+                <div>
+                  <button class="btn btn-sm ${v ? 'btn-success' : 'btn-secondary'}" onclick="updateKeyValue('${parentKey}', '${k}', ${!v})">
+                    ${v ? '✓ True / Verified' : '✕ False / Inactive'}
+                  </button>
+                </div>`;
+            } else {
+              renderedValue = `
+                <input class="form-input" value="${v ?? ''}" onchange="updateKeyValue('${parentKey}', '${k}', this.value)" />`;
+            }
+
+            return `
+              <div class="form-group ${typeof v === 'string' && v.length > 50 ? 'full-width' : ''}">
+                <div class="form-label-row">
+                  <label class="form-label">${humanize(k)}</label>
+                </div>
+                ${renderedValue}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  // Catch-all fallback for any other fields not caught above
+  const handledKeys = new Set(["title", "primary_date", "applicant_name", "summary", "key_entities", "key_values", "form_fields"]);
+  const remainingKeys = Object.keys(fields).filter(k => !handledKeys.has(k));
+  if (remainingKeys.length) {
+    html += `
+      <div class="section-card" style="margin-top:18px;">
+        <h3>Other Extracted Attributes</h3>
+        <div class="field-grid">
+          ${remainingKeys.map(k => `
+            <div class="form-group">
+              <div class="form-label-row"><label class="form-label">${humanize(k)}</label>${getConfidencePill(scores[k])}</div>
+              <input class="form-input" value="${typeof fields[k] === 'object' ? JSON.stringify(fields[k]) : (fields[k] ?? '')}" onchange="updateField('${k}', this.value)" />
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+// -------------------------------------------------------------
+// TAB 2: Validation Checks & Auditing
+// -------------------------------------------------------------
+function renderValidationChecksTab() {
+  const d = currentDoc;
+  const checks = d.validation_results || [];
+
+  if (!checks.length) {
+    return `
+      <div class="section-card">
+        <div style="text-align:center; padding:32px; color:var(--text-muted);">
+          No automated validation checks were executed for this document.
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="section-card">
+      <h3 style="margin-bottom:18px;">Automated Quality &amp; Integrity Checks (${checks.length})</h3>
+      ${checks.map(c => `
+        <div class="check-item ${c.passed ? 'pass' : 'fail'}">
+          <div class="check-icon">${c.passed ? '✅' : '❌'}</div>
+          <div>
+            <div class="check-title">${humanize(c.check)}</div>
+            <div class="check-detail">${c.detail}</div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+// -------------------------------------------------------------
+// TAB 3: Extracted Source Text (OCR / PyMuPDF)
+// -------------------------------------------------------------
+function renderSourceTextTab() {
+  const d = currentDoc;
+  const raw = d.raw_text || "(No raw text extracted or text was empty)";
+
+  return `
+    <div class="section-card">
+      <div class="flex-between" style="margin-bottom:14px;">
+        <h3 style="margin:0;">📄 Raw Extracted Text (${d.used_ocr ? 'via Tesseract OCR' : 'Native Digital PDF'})</h3>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(currentDoc.raw_text||''); showToast('Text copied to clipboard!');">
+            Copy Text
+          </button>
+          <a href="/documents/${d.id}/file" target="_blank" class="btn btn-secondary btn-sm">
+            Open File
+          </a>
+        </div>
+      </div>
+      <div class="source-box">${escapeHtml(raw)}</div>
+    </div>
+  `;
+}
+
+// -------------------------------------------------------------
+// TAB 4: Clean JSON View
+// -------------------------------------------------------------
+function renderJsonTab() {
+  const jsonStr = JSON.stringify(workingFields, null, 2);
+
+  return `
+    <div class="section-card">
+      <div class="flex-between" style="margin-bottom:14px;">
+        <h3 style="margin:0;">{ } Clean JSON Payload</h3>
+        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(JSON.stringify(workingFields, null, 2)); showToast('JSON copied to clipboard!');">
+          Copy JSON
+        </button>
+      </div>
+      <div class="source-box">${escapeHtml(jsonStr)}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// -------------------------------------------------------------
+// Field Mutation Actions & Line Items Handlers
+// -------------------------------------------------------------
+function updateField(key, val) {
+  workingFields[key] = val;
+}
+
+function updateKeyValue(parent, key, val) {
+  if (!workingFields[parent]) workingFields[parent] = {};
+  workingFields[parent][key] = val;
+  renderWorkbench();
+}
+
+function updateLineItem(idx, col, val) {
+  if (!Array.isArray(workingFields.line_items)) workingFields.line_items = [];
+  if (!workingFields.line_items[idx]) workingFields.line_items[idx] = {};
+  workingFields.line_items[idx][col] = val;
+
+  // Auto-calculate line amount if quantity and unit_price are set
+  if (col === "quantity" || col === "unit_price") {
+    const q = Number(workingFields.line_items[idx].quantity) || 0;
+    const p = Number(workingFields.line_items[idx].unit_price) || 0;
+    if (q > 0 && p > 0) {
+      workingFields.line_items[idx].amount = Number((q * p).toFixed(2));
+    }
+  }
+
+  // Recalculate subtotal
+  const newSubtotal = workingFields.line_items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  if (newSubtotal > 0) {
+    workingFields.subtotal = Number(newSubtotal.toFixed(2));
+    const tax = Number(workingFields.tax) || 0;
+    workingFields.total = Number((workingFields.subtotal + tax).toFixed(2));
+  }
+
+  renderWorkbench();
+}
+
+function addLineItem() {
+  if (!Array.isArray(workingFields.line_items)) workingFields.line_items = [];
+  workingFields.line_items.push({ description: "", quantity: 1, unit_price: 0, amount: 0 });
+  renderWorkbench();
+}
+
+function removeLineItem(idx) {
+  if (Array.isArray(workingFields.line_items)) {
+    workingFields.line_items.splice(idx, 1);
+    renderWorkbench();
+  }
+}
+
+// Skills Tag Handlers
+function addSkill(skill) {
+  const trimmed = (skill || "").trim();
+  if (!trimmed) return;
+  if (!Array.isArray(workingFields.skills)) workingFields.skills = [];
+  if (!workingFields.skills.includes(trimmed)) {
+    workingFields.skills.push(trimmed);
+    renderWorkbench();
+  }
+}
+
+function removeSkill(idx) {
+  if (Array.isArray(workingFields.skills)) {
+    workingFields.skills.splice(idx, 1);
+    renderWorkbench();
+  }
+}
+
+// Entities Tag Handlers
+function addEntity(entity) {
+  const trimmed = (entity || "").trim();
+  if (!trimmed) return;
+  if (!Array.isArray(workingFields.key_entities)) workingFields.key_entities = [];
+  if (!workingFields.key_entities.includes(trimmed)) {
+    workingFields.key_entities.push(trimmed);
+    renderWorkbench();
+  }
+}
+
+function removeEntity(idx) {
+  if (Array.isArray(workingFields.key_entities)) {
+    workingFields.key_entities.splice(idx, 1);
+    renderWorkbench();
+  }
+}
+
+// Experience & Education Handlers
+function addExperience() {
+  if (!Array.isArray(workingFields.work_experience)) workingFields.work_experience = [];
+  workingFields.work_experience.push({ title: "", company: "", start_date: "", end_date: "" });
+  renderWorkbench();
+}
+
+function updateExperience(idx, key, val) {
+  if (workingFields.work_experience && workingFields.work_experience[idx]) {
+    workingFields.work_experience[idx][key] = val;
+  }
+}
+
+function removeExperience(idx) {
+  if (Array.isArray(workingFields.work_experience)) {
+    workingFields.work_experience.splice(idx, 1);
+    renderWorkbench();
+  }
+}
+
+function addEducation() {
+  if (!Array.isArray(workingFields.education)) workingFields.education = [];
+  workingFields.education.push({ degree: "", institution: "", year: "" });
+  renderWorkbench();
+}
+
+function updateEducation(idx, key, val) {
+  if (workingFields.education && workingFields.education[idx]) {
+    workingFields.education[idx][key] = val;
+  }
+}
+
+function removeEducation(idx) {
+  if (Array.isArray(workingFields.education)) {
+    workingFields.education.splice(idx, 1);
+    renderWorkbench();
+  }
+}
+
+// Contract Terms Handlers
+function addContractTerm() {
+  if (!Array.isArray(workingFields.key_terms)) workingFields.key_terms = [];
+  workingFields.key_terms.push("");
+  renderWorkbench();
+}
+
+function updateContractTerm(idx, val) {
+  if (Array.isArray(workingFields.key_terms)) {
+    workingFields.key_terms[idx] = val;
+  }
+}
+
+function removeContractTerm(idx) {
+  if (Array.isArray(workingFields.key_terms)) {
+    workingFields.key_terms.splice(idx, 1);
+    renderWorkbench();
+  }
+}
+
+// -------------------------------------------------------------
+// Network Actions: Save, Reprocess, Upload, Export
+// -------------------------------------------------------------
+async function saveDocumentFields(markValidated = true) {
+  if (!currentDoc) return;
+  const statusToSave = markValidated ? "validated" : currentDoc.status;
+  
+  try {
+    const res = await fetch(API + "/documents/" + currentDoc.id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fields: workingFields,
+        status: statusToSave
+      })
+    });
+    if (!res.ok) throw new Error("Failed to save changes");
+    const updated = await res.json();
+    currentDoc.extracted_fields = updated.extracted_fields;
+    currentDoc.status = updated.status;
+    currentDoc.validation_results = updated.validation_results;
+    
+    showToast(markValidated ? "✓ Document validated and approved!" : "✓ Changes saved successfully");
+    renderWorkbench();
+    loadDocuments();
+  } catch (err) {
+    showToast("Error saving: " + err.message);
+  }
+}
+
+async function reprocessDocument(id) {
+  if (!id) return;
+  try {
+    showToast("Reprocessing document in background…");
+    await fetch(API + "/documents/" + id + "/reprocess", { method: "POST" });
+    setTimeout(() => {
+      selectDocument(id);
+      loadDocuments();
+    }, 1600);
+  } catch (err) {
+    showToast("Error triggering reprocess: " + err.message);
+  }
+}
+
+async function uploadFiles() {
+  const input = document.getElementById("fileInput");
+  if (!input.files.length) return;
+  
+  const formData = new FormData();
+  for (const f of input.files) formData.append("files", f);
+  
+  showToast(`Uploading ${input.files.length} document(s)…`);
+  try {
+    const res = await fetch(API + "/documents/batch-upload", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("Upload failed");
+    input.value = "";
+    showToast("Upload complete! Processing in background…");
+    setTimeout(loadDocuments, 1000);
+  } catch (err) {
+    showToast("Upload error: " + err.message);
+  }
+}
+
+function exportData(format) {
+  window.open(API + "/export?format=" + format, "_blank");
+}
+
+// Initial Boot
+loadDocuments();
+setInterval(loadDocuments, 8000);
+</script>
+</body>
+</html>

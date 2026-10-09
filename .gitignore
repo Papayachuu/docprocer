@@ -1,0 +1,7 @@
+.env
+
+venv/
+
+Dockerfile
+docker-compose.yml
+docproc.db
